@@ -1,10 +1,12 @@
 from dataclasses import dataclass
+from abc import ABC, abstractmethod
 
 @dataclass
-class Asset:
+class Asset(ABC):
     initial_value: float
     start_year: int
 
+    @abstractmethod
     def predict(self, target_year: int) -> float:
         pass
         
