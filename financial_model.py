@@ -23,11 +23,11 @@ class FinancialModel:
         plt.bar(df["year"], df["total_assets"], label="Total Assets", alpha=0.6, color="skyblue")
         plt.bar(df["year"], -df["total_liabilities"], label="Total Liabilities", alpha=0.6, color="salmon")
 
-        plt.plot(df["year"], df["inflow"], label="Inflow")
-        plt.plot(df["year"], -df["outflow"], label="Outflow")
+        plt.plot(df["year"], df["inflow"], label="Inflow", linewidth=2.5)
+        plt.plot(df["year"], -df["outflow"], label="Outflow", linewidth=2.5)
 
-        plt.plot(df["year"], df["net_worth"], label="Net Worth", marker="o", linewidth=2)
-        plt.plot(df["year"], df["net_flow"], label="Net Cash Flow", color="purple", marker="D", linewidth=2)
+        plt.plot(df["year"], df["net_worth"], label="Net Worth", marker="o", linewidth=2.5)
+        plt.plot(df["year"], df["net_flow"], label="Net Cash Flow", color="purple", marker="D", linewidth=2.5)
 
         for year in self.events:
             plt.axvline(x=year, linestyle="--", linewidth=1.5)
