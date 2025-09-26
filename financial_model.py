@@ -60,17 +60,17 @@ if __name__ == "__main__":
     ]
     liabilities = [
         HomeLoan(initial_value=500_000, interest_rate=0.05, term_years=30, start_year=2025),
-        OtherLiability(initial_value=450_000, interest_rate=0.07, annual_repayment=32_000, start_year=2028)
+        OtherLiability(initial_value=450_000, interest_rate=0.07, annual_repayment=33_000, start_year=2028)
     ]
     balance_sheet = BalanceSheet(assets, liabilities)
 
     incomes = [
-        # Income(name="Salary", amount=100_000, annual_rate=0.03, start_year=2024, end_year=2040),
-        # Income(name="Rental Income", amount=20_000, annual_rate=0.02, start_year=2026)
+        Income(name="Salary", amount=100_000, annual_rate=0.07, start_year=2024),
+        Income(name="Rental Income", amount=20_000, annual_rate=0.01, start_year=2026)
     ]
     expenses = [
-        # Expense(name="Living Expenses", amount=40_000, start_year=2024),
-        # Expense(name="Vacation Expenses", amount=100_000, start_year=2027, end_year=2027),
+        Expense(name="Living Expenses", amount=40_000, annual_rate=0.05, start_year=2024),
+        Expense(name="Vacation Expenses", amount=100_000, start_year=2027, end_year=2027),
     ]
     cash_flow = CashFlow(incomes, expenses)
 

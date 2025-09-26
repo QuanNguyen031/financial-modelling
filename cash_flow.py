@@ -29,6 +29,7 @@ class Expense:
     name: str
     amount: float
     start_year: int
+    annual_rate: float = 0.02
     end_year: Optional[int] = None
 
     def is_active(self, year: int) -> bool:
@@ -38,8 +39,13 @@ class Expense:
             return False
         return True
 
-    def predict(self, year: int) -> float:
-        return self.amount if self.is_active(year) else 0.0
+    def predict(self, target_year: int) -> float:
+        if not self.is_active(target_year):
+            return 0.0
+        
+        time = target_year - self.start_year
+        return self.amount * ((1 + self.annual_rate) ** time)
+
 
 @dataclass
 class CashFlow:
