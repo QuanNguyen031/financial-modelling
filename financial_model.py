@@ -3,53 +3,15 @@ import pandas as pd
 from dataclasses import dataclass, field
 from typing import List
 
-from balance_sheet import BalanceSheet, Asset, Liability, GrowthType
+from balance_sheet import BalanceSheet, Liability
 from cash_flow import CashFlow, Income, Expense
-
-@dataclass
-class BuyHouseEvent:
-    year: int
-    house_value: float
-    mortgage_value: float
-    mortgage_rate: float
-    mortgage_term: int
-
-    def apply(self, balance_sheet: BalanceSheet, cash_flow: CashFlow) -> None:
-        house = Asset(
-            name="House",
-            initial_value=self.house_value,
-            growth_type=GrowthType.APPRECIATING,
-            annual_rate=0.03,
-            start_year=self.year,
-        )
-        mortgage = Liability(
-            name="Mortgage",
-            initial_balance=self.mortgage_value,
-            growth_type=GrowthType.AMORTISING,
-            annual_rate=self.mortgage_rate,
-            term_years=self.mortgage_term,
-            start_year=self.year
-        )
-        expense = Expense(
-            name="Mortgage repayment",
-            amount=mortgage.annual_payment(),
-            start_year=mortgage.start_year,
-            end_year=mortgage.start_year + mortgage.term_years
-        )
-
-        balance_sheet.assets.append(house)
-        balance_sheet.liabilities.append(mortgage)
-        cash_flow.expenses.append(expense)
+from asset import Savings, ManagedFund, Shares, Property, Superannuation, LifestyleAsset
 
 @dataclass
 class FinancialModel:
     balance_sheet: BalanceSheet
     cash_flow: CashFlow
     events: List[int] = field(default_factory=list)
-
-    def add_event(self, event: BuyHouseEvent):
-        event.apply(self.balance_sheet, self.cash_flow)
-        self.events.append(event.year)
 
     def plot(self, balancesheet, cashflow):
         balance_df = pd.DataFrame(balancesheet)
@@ -64,7 +26,7 @@ class FinancialModel:
         plt.plot(df["year"], df["inflow"], label="Inflow")
         plt.plot(df["year"], -df["outflow"], label="Outflow")
 
-        plt.plot(df["year"], df["net_worth"], label="Net Worth", color="green", marker="o", linewidth=2)
+        plt.plot(df["year"], df["net_worth"], label="Net Worth", marker="o", linewidth=2)
         plt.plot(df["year"], df["net_flow"], label="Net Cash Flow", color="purple", marker="D", linewidth=2)
 
         for year in self.events:
@@ -87,11 +49,13 @@ class FinancialModel:
 
 if __name__ == "__main__":
     assets = [
-        Asset(name="Savings", initial_value=50_000, growth_type=GrowthType.FLAT, annual_rate=0, start_year=2024),
-        Asset(name="Investments", initial_value=30_000, growth_type=GrowthType.APPRECIATING, annual_rate=0.15, start_year=2024),
-        Asset(name="Lifestyle Assets", initial_value=80_000, growth_type=GrowthType.DEPRECIATING, annual_rate=0.05, start_year=2026),
-        Asset(name="Property", initial_value=200_000, growth_type=GrowthType.APPRECIATING, annual_rate=0.04, start_year=2028),
-        Asset(name="Superannuation", initial_value=100_000, growth_type=GrowthType.FLAT, annual_rate=0, start_year=2024),
+        Savings(initial_value=25_000, start_year=2025),
+        Savings(initial_value=15_000, annual_contribution=10_000, start_year=2027),
+        ManagedFund(initial_value=12_000, start_year=2029),
+        Property(initial_value=250_000, start_year=2032),
+        Shares(initial_value=30_000, start_year=2025),
+        Superannuation(initial_value=12_000, salary=80_000, start_year=2025),
+        LifestyleAsset(initial_value=30000, start_year=2025, depreciation_rate=0.15)
     ]
     liabilities = [
         # Liability(name="Home Loan", initial_balance=150_000, growth_type=GrowthType.AMORTISING, annual_rate=0.04, term_years=15, start_year=2028),
@@ -109,13 +73,6 @@ if __name__ == "__main__":
     ]
     cash_flow = CashFlow(incomes, expenses)
 
-    life_events = [
-        BuyHouseEvent(year=2030, house_value=500_000, mortgage_value=300_000, mortgage_rate=0.05, mortgage_term=10)
-    ]
-
-    start, end = 2024, 2050
+    start, end = 2025, 2070
     financial_model = FinancialModel(balance_sheet, cash_flow)
-
-    for event in life_events:
-        financial_model.add_event(event)
     financial_model.model(start, end)

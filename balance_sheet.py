@@ -1,35 +1,7 @@
 from typing import List, Dict
-from enum import Enum
 from dataclasses import dataclass, field
-
-class GrowthType(str, Enum):
-    APPRECIATING = "Appreciating"
-    DEPRECIATING = "Depreciating"
-    FLAT = "Flat"
-    AMORTISING = "Amortising"
-
-@dataclass
-class Asset:
-    name: str
-    initial_value: float
-    growth_type: GrowthType
-    annual_rate: float
-    start_year: int = 2025
-
-    def predict(self, target_year: int) -> float:
-        if target_year < self.start_year:
-            return 0
-
-        time = target_year - self.start_year
-
-        if self.growth_type == GrowthType.APPRECIATING:
-            return self.initial_value * ((1 + self.annual_rate) ** time)
-        elif self.growth_type == GrowthType.DEPRECIATING:
-            return self.initial_value * ((1 - self.annual_rate) ** time)
-        elif self.growth_type == GrowthType.FLAT:
-            return self.initial_value
-        else:
-            raise ValueError(f"Unknown growth type: {self.growth_type}")
+from asset import Asset
+from growth_type import GrowthType
 
 @dataclass
 class Liability:
