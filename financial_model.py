@@ -1,22 +1,30 @@
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import pandas as pd
+from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import List
+from typing import Iterable, List, Sequence, Tuple
 
 from balance_sheet import BalanceSheet
 from cash_flow import CashFlow, Income, Expense
 from asset import Savings, ManagedFund, Shares, Property, Superannuation, LifestyleAsset
 from liability import HomeLoan, OtherLiability
+from life_event import LifeEvent, HomePurchase, ChildBirth, Inheritance
 
 @dataclass
 class FinancialModel:
     balance_sheet: BalanceSheet
     cash_flow: CashFlow
-    events: List[int] = field(default_factory=list)
+    events: List[LifeEvent] = field(default_factory=list)
 
-    def plot(self, balancesheet, cashflow):
-        balance_df = pd.DataFrame(balancesheet)
-        cashflow_df = pd.DataFrame(cashflow)
+    def plot(
+        self,
+        balance_projection: Iterable[dict],
+        cash_flow_projection: Iterable[dict],
+        events: Sequence[LifeEvent],
+    ) -> None:
+        balance_df = pd.DataFrame(balance_projection)
+        cashflow_df = pd.DataFrame(cash_flow_projection)
         df = balance_df.merge(cashflow_df, on="year", how="left")
 
         plt.figure(figsize=(10, 6))
@@ -30,8 +38,26 @@ class FinancialModel:
         plt.plot(df["year"], df["net_worth"], label="Net Worth", marker="o", linewidth=2.5)
         plt.plot(df["year"], df["net_flow"], label="Net Cash Flow", color="purple", marker="D", linewidth=2.5)
 
-        for year in self.events:
-            plt.axvline(x=year, linestyle="--", linewidth=1.5)
+        for event in events:
+            plt.axvline(x=event.start_year, linestyle="--", linewidth=1.5, color="grey", alpha=0.7)
+
+        if events:
+            _, ymax = plt.ylim()
+            for idx, event in enumerate(events):
+                plt.text(
+                    event.start_year,
+                    ymax,
+                    event.name,
+                    rotation=90,
+                    va="bottom",
+                    ha="right",
+                    fontsize=8,
+                    alpha=0.7,
+                    rotation_mode="anchor",
+                )
+
+        ax = plt.gca()
+        ax.yaxis.set_major_formatter(ticker.StrMethodFormatter("{x:,.0f}"))
 
         plt.xlabel("Year")
         plt.ylabel("Amount")
@@ -42,11 +68,34 @@ class FinancialModel:
 
         plt.tight_layout()
         plt.show()
-    
-    def model(self, start_year, end_year):
-        bs_projection = self.balance_sheet.project(start_year, end_year)
-        cf_projection = self.cash_flow.project(start_year, end_year)
-        self.plot(bs_projection, cf_projection)
+
+    """TODO: review"""
+    def _components_with_events(
+        self, start_year: int, end_year: int
+    ) -> Tuple[BalanceSheet, CashFlow, List[LifeEvent]]:
+        balance_sheet = deepcopy(self.balance_sheet)
+        cash_flow = deepcopy(self.cash_flow)
+        active_events: List[LifeEvent] = []
+
+        for event in sorted(self.events, key=lambda e: e.start_year):
+            if event.start_year > end_year:
+                continue
+            event.apply(balance_sheet, cash_flow)
+            active_events.append(event)
+
+        return balance_sheet, cash_flow, active_events
+
+    def model(self, start_year: int, end_year: int) -> Tuple[List[dict], List[dict]]:
+        balance_sheet, cash_flow, active_events = self._components_with_events(start_year, end_year)
+
+        bs_projection = balance_sheet.project(start_year, end_year)
+        cf_projection = cash_flow.project(start_year, end_year)
+
+        events_in_range = [event for event in active_events if start_year <= event.start_year <= end_year]
+        self.plot(bs_projection, cf_projection, events_in_range)
+
+        return bs_projection, cf_projection
+
 
 if __name__ == "__main__":
     assets = [
@@ -56,17 +105,17 @@ if __name__ == "__main__":
         Property(initial_value=100_000, start_year=2032),
         Shares(initial_value=30_000, start_year=2025),
         Superannuation(initial_value=12_000, salary=80_000, start_year=2025),
-        LifestyleAsset(initial_value=30_000, start_year=2025, depreciation_rate=0.15)
+        LifestyleAsset(initial_value=30_000, start_year=2025, depreciation_rate=0.15),
     ]
     liabilities = [
         HomeLoan(initial_value=500_000, interest_rate=0.05, term_years=30, start_year=2025),
-        OtherLiability(initial_value=450_000, interest_rate=0.07, annual_repayment=33_000, start_year=2028)
+        OtherLiability(initial_value=450_000, interest_rate=0.07, annual_repayment=33_000, start_year=2028),
     ]
     balance_sheet = BalanceSheet(assets, liabilities)
 
     incomes = [
         Income(name="Salary", amount=100_000, annual_rate=0.07, start_year=2024),
-        Income(name="Rental Income", amount=20_000, annual_rate=0.01, start_year=2026)
+        Income(name="Rental Income", amount=20_000, annual_rate=0.01, start_year=2026),
     ]
     expenses = [
         Expense(name="Living Expenses", amount=40_000, annual_rate=0.05, start_year=2024),
@@ -74,6 +123,31 @@ if __name__ == "__main__":
     ]
     cash_flow = CashFlow(incomes, expenses)
 
+    events = [
+        HomePurchase(
+            name="First Home Purchase",
+            start_year=2030,
+            purchase_price=2_000_000,
+            appreciation_rate=0.035,
+            mortgage_rate=0.045,
+            mortgage_term_years=30,
+            deposit=120_000,
+            maintenance_cost=3_500,
+        ),
+        ChildBirth(
+            name="First Child",
+            start_year=2032,
+            annual_cost=15_000,
+            years_of_expense=18,
+        ),
+        Inheritance(
+            name="Family Inheritance",
+            start_year=2045,
+            amount=100_000,
+            savings_interest_rate=0.045,
+        ),
+    ]
+
     start, end = 2025, 2070
-    financial_model = FinancialModel(balance_sheet, cash_flow)
+    financial_model = FinancialModel(balance_sheet, cash_flow, events=events)
     financial_model.model(start, end)
