@@ -16,7 +16,6 @@ class FinancialModel:
     balance_sheet: BalanceSheet
     cash_flow: CashFlow
     events: List[LifeEvent] = field(default_factory=list)
-    inflation_rate: float = 0.0
 
     def plot(
         self,
@@ -31,14 +30,12 @@ class FinancialModel:
         if df.empty:
             return
 
-        use_real = self.inflation_rate != 0
-
-        asset_key = "total_assets_real" if use_real and "total_assets_real" in df.columns else "total_assets"
-        liability_key = "total_liabilities_real" if use_real and "total_liabilities_real" in df.columns else "total_liabilities"
-        net_worth_key = "net_worth_real" if use_real and "net_worth_real" in df.columns else "net_worth"
-        inflow_key = "inflow_real" if use_real and "inflow_real" in df.columns else "inflow"
-        outflow_key = "outflow_real" if use_real and "outflow_real" in df.columns else "outflow"
-        net_flow_key = "net_flow_real" if use_real and "net_flow_real" in df.columns else "net_flow"
+        asset_key = "total_assets"
+        liability_key = "total_liabilities"
+        net_worth_key = "net_worth"
+        inflow_key = "inflow"
+        outflow_key = "outflow"
+        net_flow_key = "net_flow"
 
         label_suffix = ""
         amount_label = "Amount"
@@ -138,9 +135,6 @@ class FinancialModel:
         bs_projection = balance_sheet.project(start_year, end_year)
         cf_projection = cash_flow.project(start_year, end_year)
 
-        bs_projection = self._add_real_terms(bs_projection, start_year, ("total_assets", "total_liabilities", "net_worth"))
-        cf_projection = self._add_real_terms(cf_projection, start_year, ("inflow", "outflow", "net_flow"))
-
         events_in_range = [event for event in active_events if start_year <= event.start_year <= end_year]
         self.plot(bs_projection, cf_projection, events_in_range)
 
@@ -204,5 +198,3 @@ if __name__ == "__main__":
     financial_model = FinancialModel(balance_sheet, cash_flow, events=events)
     financial_model.model(start, end)
 
-    financial_model.set_inflation(0.025)
-    financial_model.model(start, end)
